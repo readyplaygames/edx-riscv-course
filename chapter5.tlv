@@ -100,7 +100,6 @@
    $is_and = $dec_bits ==?  11'b0_111_0110011;
    
    $is_load = $dec_bits ==? 11'bx_xxx_0000011;
-   $is_store = $is_s_instr;
    
    `BOGUS_USE($dec_bits $is_beq $is_bne $is_blt $is_bge $is_bltu $is_bgeu $is_add $is_addi)
      
@@ -142,6 +141,8 @@
                    $sltiu_rslt : {31'b0, $src1_value[31]} :
       $is_sra ? $sra_rslt[31:0] :
       $is_srai ? $srai_rslt[31:0] :
+      $is_load ? $rs1_value + $imm :
+      $is_s_instr ? $rs1_value + $imm :
       32'b0; // default
        
        
@@ -157,12 +158,15 @@
    $jalr_tgt_pc[31:0] = $src1_value + $imm;
    $br_tgt_pc[31:0] = $pc + $imm;
    
+   // LOAD/STORE
+   
+   
    // Assert these to end simulation (before Makerchip cycle limit).
    m4+tb()
    *failed = *cyc_cnt > M4_MAX_CYC;
    
-   m4+rf(32, 32, $reset, $rd_valid, $rd[4:0], $result[31:0], $rs1_valid, $rs1[4:0], $src1_value, $rs2_valid, $rs2[4:0], $src2_value)
-   //m4+dmem(32, 32, $reset, $addr[4:0], $wr_en, $wr_data[31:0], $rd_en, $rd_data)
+   m4+rf(32, 32, $reset, $rd_valid, $rd[4:0], $is_load ? $ld_data : $result[31:0], $rs1_valid, $rs1[4:0], $src1_value, $rs2_valid, $rs2[4:0], $src2_value)
+   m4+dmem(32, 32, $reset, $result[4:0], $is_s_instr, $src2_value[31:0], $is_load, $ld_data[31:0])
    m4+cpu_viz()
 \SV
    endmodule
